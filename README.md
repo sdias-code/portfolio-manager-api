@@ -2,6 +2,10 @@
 
 Professional ASP.NET Core Web API for managing portfolio projects.
 
+## 🌐 API Online
+
+https://portfolio-manager-api-sqrr.onrender.com
+
 ## Overview
 
 This project demonstrates a professional backend architecture using
@@ -22,6 +26,10 @@ and database access using Dapper.
 -   Dependency Injection
 -   Repository Pattern
 -   Service Layer
+
+ ## 📖 Documentação
+
+https://portfolio-manager-api-sqrr.onrender.com/swagger
 
 ## Features
 

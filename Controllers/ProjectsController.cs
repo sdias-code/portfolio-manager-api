@@ -1,11 +1,13 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PortfolioManager.Api.Application.Interfaces;
 using PortfolioManager.Api.Common;
 using PortfolioManager.Api.DTOs;
 
 namespace PortfolioManager.Api.Controllers;
 
+[EnableRateLimiting("fixed")]
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
