@@ -1,17 +1,30 @@
 ﻿using Dapper;
+using PortfolioManager.Api.Data;
 using PortfolioManager.Api.DTOs;
 using PortfolioManager.Api.Infrastructure.Interfaces;
-using System.Data;
 
 namespace PortfolioManager.Api.Infrastructure.Repositories;
 
 public class ProjectRepository : IProjectRepository
 {
-    private readonly IDbConnection _connection;
+    private readonly DapperContext _context;
 
-    public ProjectRepository(IDbConnection connection)
+    private const string BaseSelect = @"
+    SELECT 
+        id,
+        title,
+        description,
+        status,
+        created_at AS CreatedAt,
+        updated_at AS UpdatedAt
+    FROM projects";
+
+    private const string WhereStatus =
+        "WHERE (@Status IS NULL OR status = @Status)";
+
+    public ProjectRepository(DapperContext context)
     {
-        _connection = connection;
+        _context = context;
     }
 
     // =========================
@@ -20,33 +33,28 @@ public class ProjectRepository : IProjectRepository
     public async Task<PagedResultDto<ProjectResponseDto>> GetPagedAsync(ProjectQueryParams query)
     {
         var page = query.Page <= 0 ? 1 : query.Page;
-        var pageSize = query.PageSize <= 0 ? 10 : query.PageSize;
+        var pageSize = query.PageSize <= 0 ? 10 : Math.Min(query.PageSize, 100);
         var offset = (page - 1) * pageSize;
 
-        var countSql = @"
+        using var connection = _context.CreateConnection();
+
+        var countSql = $@"
         SELECT COUNT(*)
         FROM projects
-        WHERE (@Status IS NULL OR status = @Status);";
+        {WhereStatus};";
 
-        var totalCount = await _connection.ExecuteScalarAsync<int>(countSql, new
+        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new
         {
             query.Status
         });
 
-        var dataSql = @"
-        SELECT 
-            id,
-            title,
-            description,
-            status,
-            created_at AS CreatedAt,
-            updated_at AS UpdatedAt
-        FROM projects
-        WHERE (@Status IS NULL OR status = @Status)
+        var dataSql = $@"
+        {BaseSelect}
+        {WhereStatus}
         ORDER BY id DESC
         LIMIT @PageSize OFFSET @Offset;";
 
-        var data = await _connection.QueryAsync<ProjectResponseDto>(dataSql, new
+        var data = await connection.QueryAsync<ProjectResponseDto>(dataSql, new
         {
             query.Status,
             PageSize = pageSize,
@@ -55,7 +63,7 @@ public class ProjectRepository : IProjectRepository
 
         return new PagedResultDto<ProjectResponseDto>
         {
-            Data = data,
+            Data = data.ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -67,18 +75,13 @@ public class ProjectRepository : IProjectRepository
     // =========================
     public async Task<ProjectResponseDto?> GetByIdAsync(long id)
     {
-        var sql = @"
-            SELECT 
-                id,
-                title,
-                description,
-                status,
-                created_at AS CreatedAt,
-                updated_at AS UpdatedAt
-            FROM projects
-            WHERE id = @Id;";
+        using var connection = _context.CreateConnection();
 
-        return await _connection.QueryFirstOrDefaultAsync<ProjectResponseDto>(sql, new { Id = id });
+        var sql = $@"
+        {BaseSelect}
+        WHERE id = @Id;";
+
+        return await connection.QueryFirstOrDefaultAsync<ProjectResponseDto>(sql, new { Id = id });
     }
 
     // =========================
@@ -86,12 +89,14 @@ public class ProjectRepository : IProjectRepository
     // =========================
     public async Task<long> CreateAsync(CreateProjectDto dto)
     {
-        var sql = @"
-            INSERT INTO projects (title, description, status)
-            VALUES (@Title, @Description, @Status)
-            RETURNING id;";
+        const string sql = @"
+        INSERT INTO projects (title, description, status)
+        VALUES (@Title, @Description, @Status)
+        RETURNING id;";
 
-        return await _connection.ExecuteScalarAsync<long>(sql, dto);
+        using var connection = _context.CreateConnection();
+
+        return await connection.ExecuteScalarAsync<long>(sql, dto);
     }
 
     // =========================
@@ -99,15 +104,17 @@ public class ProjectRepository : IProjectRepository
     // =========================
     public async Task<bool> UpdateAsync(long id, UpdateProjectDto dto)
     {
-        var sql = @"
-            UPDATE projects
-            SET title = @Title,
-                description = @Description,
-                status = @Status,
-                updated_at = now()
-            WHERE id = @Id;";
+        const string sql = @"
+        UPDATE projects
+        SET title = @Title,
+            description = @Description,
+            status = @Status,
+            updated_at = now()
+        WHERE id = @Id;";
 
-        var rows = await _connection.ExecuteAsync(sql, new
+        using var connection = _context.CreateConnection();
+
+        var rows = await connection.ExecuteAsync(sql, new
         {
             Id = id,
             dto.Title,
@@ -123,8 +130,12 @@ public class ProjectRepository : IProjectRepository
     // =========================
     public async Task<bool> DeleteAsync(long id)
     {
-        var sql = "DELETE FROM projects WHERE id = @Id;";
-        var rows = await _connection.ExecuteAsync(sql, new { Id = id });
+        const string sql = "DELETE FROM projects WHERE id = @Id;";
+
+        using var connection = _context.CreateConnection();
+
+        var rows = await connection.ExecuteAsync(sql, new { Id = id });
+
         return rows > 0;
     }
 }

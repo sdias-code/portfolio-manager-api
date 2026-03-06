@@ -9,10 +9,6 @@ public class DapperContext
 
     public DapperContext(IConfiguration configuration)
     {
-        var conn = configuration.GetConnectionString("DefaultConnection");
-
-        Console.WriteLine($"CONNECTION: {conn}");
-
         _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException(
                 "Connection string 'DefaultConnection' not configured.");

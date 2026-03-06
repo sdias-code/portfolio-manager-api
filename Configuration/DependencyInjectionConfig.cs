@@ -10,13 +10,10 @@ public static class DependencyInjectionConfig
 {
     public static void AddDependencyInjectionConfig(this IServiceCollection services)
     {
-        services.AddSingleton<DapperContext>();
-
-        services.AddScoped<IDbConnection>(sp =>
-            sp.GetRequiredService<DapperContext>().CreateConnection()
-        );
+        services.AddSingleton<DapperContext>();      
 
         services.AddScoped<IProjectRepository, ProjectRepository>();
+
         services.AddScoped<IProjectService, ProjectService>();
     }
 }
