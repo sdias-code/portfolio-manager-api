@@ -18,7 +18,6 @@ builder.Services.AddDependencyInjectionConfig();
 var app = builder.Build();
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{port}");
 
 app.UseMiddleware<ExceptionMiddleware>();
 
@@ -35,4 +34,4 @@ app.MapHealthChecks("/health");
 
 app.UseRateLimiter();
 
-app.Run();
+app.Run($"http://0.0.0.0:{port}");
