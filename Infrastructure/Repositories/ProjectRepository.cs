@@ -36,6 +36,9 @@ public class ProjectRepository : IProjectRepository
         var pageSize = query.PageSize <= 0 ? 10 : Math.Min(query.PageSize, 100);
         var offset = (page - 1) * pageSize;
 
+        // evita problema de string vazia
+        var status = string.IsNullOrWhiteSpace(query.Status) ? null : query.Status;
+
         using var connection = _context.CreateConnection();
 
         var countSql = $@"
@@ -45,7 +48,7 @@ public class ProjectRepository : IProjectRepository
 
         var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new
         {
-            query.Status
+            Status = status
         });
 
         var dataSql = $@"
@@ -56,7 +59,7 @@ public class ProjectRepository : IProjectRepository
 
         var data = await connection.QueryAsync<ProjectResponseDto>(dataSql, new
         {
-            query.Status,
+            Status = status,
             PageSize = pageSize,
             Offset = offset
         });
