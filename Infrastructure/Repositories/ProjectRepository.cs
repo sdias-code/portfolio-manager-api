@@ -2,6 +2,7 @@
 using PortfolioManager.Api.Data;
 using PortfolioManager.Api.DTOs;
 using PortfolioManager.Api.Infrastructure.Interfaces;
+using PortfolioManager.Api.Infrastructure.Resilience;
 
 namespace PortfolioManager.Api.Infrastructure.Repositories;
 
@@ -55,7 +56,12 @@ public class ProjectRepository : IProjectRepository
         FROM projects
         {where};";
 
-        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters);
+        var retryPolicy = DatabaseRetryPolicy.GetRetryPolicy();
+
+        var totalCount = await retryPolicy.ExecuteAsync(async () =>
+        {
+            return await connection.ExecuteScalarAsync<int>(countSql, new { query.Status });
+        });
 
         var dataSql = $@"
         {BaseSelect}
@@ -77,15 +83,23 @@ public class ProjectRepository : IProjectRepository
     // =========================
     // GET BY ID
     // =========================
-    public async Task<ProjectResponseDto?> GetByIdAsync(long id)
-    {
-        using var connection = _context.CreateConnection();
+    public async Task<ProjectResponseDto?> GetByIdAsync(
+        long id,
+        CancellationToken cancellationToken)
+        {
+            using var connection = _context.CreateConnection();
 
-        var sql = $@"
-        {BaseSelect}
-        WHERE id = @Id;";
+            var sql = $@"
+                {BaseSelect}
+                WHERE id = @Id;";
 
-        return await connection.QueryFirstOrDefaultAsync<ProjectResponseDto>(sql, new { Id = id });
+        return await connection.QueryFirstOrDefaultAsync<ProjectResponseDto>(
+            new CommandDefinition(
+                sql,
+                new { Id = id },
+                cancellationToken: cancellationToken
+            )
+        );
     }
 
     // =========================

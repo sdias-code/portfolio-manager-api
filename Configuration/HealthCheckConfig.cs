@@ -7,7 +7,7 @@ public static class HealthCheckConfig
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 "Connection string 'DefaultConnection' is not configured. " +
                 "Please add it to configuration (e.g., appsettings.json or environment variables).");
         }

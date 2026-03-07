@@ -44,11 +44,11 @@ public class ProjectService : IProjectService
         }
     }
 
-    public async Task<ProjectResponseDto?> GetByIdAsync(long id)
+    public async Task<ProjectResponseDto?> GetByIdAsync(long id, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Fetching project with ID: {Id}", id);
 
-        var project = await _repository.GetByIdAsync(id);
+        var project = await _repository.GetByIdAsync(id, cancellationToken);
 
         if (project == null)
         {

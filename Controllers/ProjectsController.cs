@@ -40,9 +40,9 @@ public class ProjectsController : ControllerBase
     [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(ApiResponse<ProjectResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ProjectResponseDto>> GetById(long id)
+    public async Task<ActionResult<ApiResponse<ProjectResponseDto>>> GetById(long id, CancellationToken cancellationToken)
     {
-        var project = await _service.GetByIdAsync(id);
+        var project = await _service.GetByIdAsync(id, cancellationToken);
 
         if (project is null)
             return NotFound(new ApiResponse<ProjectResponseDto>
@@ -67,13 +67,13 @@ public class ProjectsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(ProjectResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ProjectResponseDto>> Create([FromBody] CreateProjectDto dto)
+    public async Task<ActionResult<ProjectResponseDto>> Create([FromBody] CreateProjectDto dto, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var id = await _service.CreateAsync(dto);
-        var project = await _service.GetByIdAsync(id);
+        var project = await _service.GetByIdAsync(id, cancellationToken);
 
         return CreatedAtAction(
             nameof(GetById),

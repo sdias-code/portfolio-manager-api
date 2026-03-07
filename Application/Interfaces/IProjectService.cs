@@ -6,7 +6,7 @@ namespace PortfolioManager.Api.Application.Interfaces
     {
         Task<PagedResultDto<ProjectResponseDto>> GetPagedAsync(ProjectQueryParams query);
 
-        Task<ProjectResponseDto?> GetByIdAsync(long id);
+        Task<ProjectResponseDto?> GetByIdAsync(long id, CancellationToken cancellationToken);
 
         Task<long> CreateAsync(CreateProjectDto dto);
 
