@@ -36,33 +36,34 @@ public class ProjectRepository : IProjectRepository
         var pageSize = query.PageSize <= 0 ? 10 : Math.Min(query.PageSize, 100);
         var offset = (page - 1) * pageSize;
 
-        // evita problema de string vazia
-        var status = string.IsNullOrWhiteSpace(query.Status) ? null : query.Status;
-
         using var connection = _context.CreateConnection();
+
+        var parameters = new DynamicParameters();
+        parameters.Add("PageSize", pageSize);
+        parameters.Add("Offset", offset);
+
+        var where = "";
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            where = "WHERE status = @Status";
+            parameters.Add("Status", query.Status);
+        }
 
         var countSql = $@"
         SELECT COUNT(*)
         FROM projects
-        {WhereStatus};";
+        {where};";
 
-        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new
-        {
-            Status = status
-        });
+        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters);
 
         var dataSql = $@"
         {BaseSelect}
-        {WhereStatus}
+        {where}
         ORDER BY id DESC
         LIMIT @PageSize OFFSET @Offset;";
 
-        var data = await connection.QueryAsync<ProjectResponseDto>(dataSql, new
-        {
-            Status = status,
-            PageSize = pageSize,
-            Offset = offset
-        });
+        var data = await connection.QueryAsync<ProjectResponseDto>(dataSql, parameters);
 
         return new PagedResultDto<ProjectResponseDto>
         {
