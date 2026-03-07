@@ -17,10 +17,31 @@ public class ProjectService : IProjectService
 
     public async Task<PagedResultDto<ProjectResponseDto>> GetPagedAsync(ProjectQueryParams query)
     {
-        _logger.LogInformation("Fetching projects with status: {Status}, page: {Page}, pageSize: {PageSize}", 
-            query.Status, query.Page, query.PageSize);
+        try
+        {
+            _logger.LogInformation(
+                "Fetching projects | Status: {Status} | Page: {Page} | PageSize: {PageSize}",
+                query.Status ?? "NULL",
+                query.Page,
+                query.PageSize
+            );
 
-        return await _repository.GetPagedAsync(query);
+            var result = await _repository.GetPagedAsync(query);
+
+            _logger.LogInformation(
+                "Fetched {Count} projects for page {Page}",
+                result.Data.Count(),
+                query.Page
+            );
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching paged projects");
+
+            throw;
+        }
     }
 
     public async Task<ProjectResponseDto?> GetByIdAsync(long id)
