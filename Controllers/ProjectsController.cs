@@ -128,4 +128,13 @@ public class ProjectsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpGet("stats")]
+    [ProducesResponseType(typeof(ApiResponse<ProjectStatsDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStats()
+    {
+        var stats = await _service.GetStatsAsync();
+
+        return Ok(ApiResponse<ProjectStatsDto>.Ok(stats));       
+    }
 }

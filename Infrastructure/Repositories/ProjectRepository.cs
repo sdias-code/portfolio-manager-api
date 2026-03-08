@@ -43,13 +43,39 @@ public class ProjectRepository : IProjectRepository
         parameters.Add("PageSize", pageSize);
         parameters.Add("Offset", offset);
 
-        var where = "";
+        var filters = new List<string>();
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
-            where = "WHERE status = @Status";
+            filters.Add("status = @Status");
             parameters.Add("Status", query.Status);
         }
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            filters.Add("title ILIKE '%' || @Search || '%'");
+            parameters.Add("Search", query.Search);
+        }
+
+        var where = filters.Any()
+            ? $"WHERE {string.Join(" AND ", filters)}"
+            : "";
+
+        // Colunas permitidas para ordenação
+        var allowedSortColumns = new[]
+        {
+        "id",
+        "title",
+        "status",
+        "created_at",
+        "updated_at"
+    };
+
+        var sortBy = allowedSortColumns.Contains(query.SortBy?.ToLower())
+            ? query.SortBy
+            : "id";
+
+        var order = query.Order?.ToLower() == "asc" ? "ASC" : "DESC";
 
         var countSql = $@"
         SELECT COUNT(*)
@@ -60,13 +86,13 @@ public class ProjectRepository : IProjectRepository
 
         var totalCount = await retryPolicy.ExecuteAsync(async () =>
         {
-            return await connection.ExecuteScalarAsync<int>(countSql, new { query.Status });
+            return await connection.ExecuteScalarAsync<int>(countSql, parameters);
         });
 
         var dataSql = $@"
         {BaseSelect}
         {where}
-        ORDER BY id DESC
+        ORDER BY {sortBy} {order}
         LIMIT @PageSize OFFSET @Offset;";
 
         var data = await connection.QueryAsync<ProjectResponseDto>(dataSql, parameters);
@@ -155,5 +181,25 @@ public class ProjectRepository : IProjectRepository
         var rows = await connection.ExecuteAsync(sql, new { Id = id });
 
         return rows > 0;
+    }
+
+    // =========================
+    // STATS
+    // =========================
+    public async Task<ProjectStatsDto> GetStatsAsync()
+    {
+        using var connection = _context.CreateConnection();
+
+        var sql = @"
+        SELECT
+            COUNT(*) AS Total,
+            COUNT(*) FILTER (WHERE status = 'Active') AS Active,
+            COUNT(*) FILTER (WHERE status = 'InProgress') AS InProgress,
+            COUNT(*) FILTER (WHERE status = 'Completed') AS Completed,
+            COUNT(*) FILTER (WHERE status = 'Paused') AS Paused
+        FROM projects;
+        ";
+
+        return await connection.QueryFirstAsync<ProjectStatsDto>(sql);
     }
 }

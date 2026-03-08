@@ -20,8 +20,9 @@ public class ProjectService : IProjectService
         try
         {
             _logger.LogInformation(
-                "Fetching projects | Status: {Status} | Page: {Page} | PageSize: {PageSize}",
+                "Fetching projects | Status: {Status} | Search: {Search} | Page: {Page} | PageSize: {PageSize}",
                 query.Status ?? "NULL",
+                query.Search ?? "NULL",
                 query.Page,
                 query.PageSize
             );
@@ -102,5 +103,24 @@ public class ProjectService : IProjectService
         }
 
         return true;
+    }
+
+    public async Task<ProjectStatsDto> GetStatsAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Fetching project statistics");
+
+            var stats = await _repository.GetStatsAsync();
+
+            _logger.LogInformation("Project statistics fetched successfully");
+
+            return stats;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching project statistics");
+            throw;
+        }
     }
 }

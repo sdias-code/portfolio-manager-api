@@ -13,5 +13,7 @@ namespace PortfolioManager.Api.Application.Interfaces
         Task<bool> UpdateAsync(long id, UpdateProjectDto dto);
 
         Task<bool> DeleteAsync(long id);
+
+        Task<ProjectStatsDto> GetStatsAsync();
     }
 }
